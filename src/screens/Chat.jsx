@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import React, {useEffect, useState} from 'react';
 
@@ -18,8 +19,23 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState();
   const [users, setUsers] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState([]);
 
   const navigation = useNavigation();
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const currentUser = await GoogleSignin.getCurrentUser();
+        setCurrentUser(currentUser);
+      } catch (error) {
+        console.error('Error getting current user:', error);
+      }
+    };
+
+    getCurrentUser();
+  }, []);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -30,47 +46,61 @@ const Chat = () => {
           id: doc.id,
           ...doc.data(),
         }));
-        setUsers(usersData);
+        const filteredUsers = usersData.filter(
+          user => user.email !== currentUser?.user?.email,
+        );
+
+        setUsers(filteredUsers);
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching users:', error);
       }
     };
 
-    const getCurrentUser = async () => {
-      try {
-        const currentUser = await GoogleSignin.getCurrentUser();
-        setCurrentUser(currentUser);
-      } catch (error) {
-        console.error('Error getting current user:', error);
-      }
-    };
+    if (currentUser) {
+      fetchUsers();
+    }
+  }, [currentUser]);
 
-    fetchUsers();
-    getCurrentUser();
-  }, []);
+  const handleSearch = query => {
+    setSearchQuery(query);
+    const filtered = users.filter(
+      user =>
+        user.displayName.toLowerCase().includes(query.toLowerCase()) ||
+        user.email.toLowerCase().includes(query.toLowerCase()),
+    );
+    setFilteredUsers(filtered);
+  };
 
   return (
     <View style={styles.container}>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search users..."
+        onChangeText={handleSearch}
+        value={searchQuery}
+      />
       {isLoading ? (
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <FlatList
-          data={users}
+          data={searchQuery ? filteredUsers : users}
           keyExtractor={item => item.id}
           renderItem={({item}) => (
-            <TouchableOpacity onPress={() => {navigation.navigate('ChatZone', {username: item.displayName})}}>
+            <TouchableOpacity
+              onPress={() => {
+                navigation.navigate('ChatZone', {
+                  username: item.displayName,
+                  uid: item.uid,
+                  profilePicture: item.photoURL,
+                });
+              }}>
               <View style={styles.chatContainer}>
                 <Image source={{uri: item.photoURL}} style={styles.image} />
                 <View style={styles.chatContent}>
                   <View style={styles.chatHeader}>
                     <View style={styles.chatInfo}>
-                      <Text style={styles.chatName}>
-                        {item.displayName +
-                          (item.email === currentUser?.user.email
-                            ? ' (You)'
-                            : '')}
-                      </Text>
+                      <Text style={styles.chatName}>{item.displayName}</Text>
                     </View>
                   </View>
                 </View>
@@ -97,11 +127,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 10,
     marginLeft: 5,
-    marginR: 5,
+    marginRight: 5,
     borderRadius: 20,
     backgroundColor: '#C8C8C8',
   },
-
+  
   image: {
     width: 50,
     height: 50,
@@ -115,6 +145,15 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 16,
     justifyContent: 'center',
+  },
+  
+  searchInput: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 0.5,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    margin: 5
   },
 
   chatHeader: {

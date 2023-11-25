@@ -32,7 +32,6 @@ const SignIn = ({setUserInformation}) => {
 
       auth().onAuthStateChanged(async user => {
         if (user) {
-          console.log('user details: ', user);
           const {uid, displayName, photoURL, email} = user;
 
           await firestore().collection('users').doc(uid).set({
