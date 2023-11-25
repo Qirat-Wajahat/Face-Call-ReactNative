@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "209793389856",
+    "project_id": "face-call-connect",
+    "storage_bucket": "face-call-connect.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:209793389856:android:f4a7d0bd1df95c9b407345",
+        "android_client_info": {
+          "package_name": "com.facecall"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "209793389856-07iunkeg9buhk5mp4li01l4uqen1r57f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.facecall",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "209793389856-ot1nj8sjq8tvqufgsd761pnid405trc3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.facecall",
+            "certificate_hash": "383e6845bc2292662e5aa4d0be2f588fa8bb5fbe"
+          }
+        },
+        {
+          "client_id": "209793389856-n1jcp2od4mu38lui1ou1t50400cq7f29.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZf9oU4Dj09OFGmyGNYqGZHvBn6S0ciOM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "209793389856-n1jcp2od4mu38lui1ou1t50400cq7f29.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
