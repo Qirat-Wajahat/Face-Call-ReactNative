@@ -77,6 +77,7 @@ const Chat = () => {
       <TextInput
         style={styles.searchInput}
         placeholder="Search users..."
+        placeholderTextColor={'#696969'}
         onChangeText={handleSearch}
         value={searchQuery}
       />
@@ -150,8 +151,9 @@ const styles = StyleSheet.create({
   searchInput: {
     height: 40,
     borderColor: 'gray',
+    color: '#696969',
     borderWidth: 0.5,
-    borderRadius: 20,
+    borderRadius: 15,
     paddingHorizontal: 10,
     margin: 5
   },

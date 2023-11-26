@@ -73,7 +73,7 @@ const SignIn = ({setUserInformation}) => {
             source={require('../assets/google-icon.png')}
             style={styles.icon}
           />
-          <Text style={{color: 'black'}}>Continue with Google</Text>
+          <Text style={{color: 'black', fontSize: 20,}}>Continue with Google</Text>
         </TouchableOpacity>
       )}
 
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 50,
     color: '#333',
   },
 
@@ -117,9 +117,8 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 24,
-    fontSize: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 48,
     elevation: 5,
     color: '#333',
     cursor: 'pointer',
