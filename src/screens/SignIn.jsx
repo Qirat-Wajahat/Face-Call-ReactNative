@@ -1,11 +1,19 @@
 import React, {useState, useEffect} from 'react';
-import {StyleSheet, View, Text, Image, TouchableOpacity, ActivityIndicator} from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import messaging from '@react-native-firebase/messaging';
 
 const SignIn = ({setUserInformation}) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +30,7 @@ const SignIn = ({setUserInformation}) => {
 
   const handleGoogleSignIn = async () => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
 
       await GoogleSignin.hasPlayServices();
       const {idToken} = await GoogleSignin.signIn();
@@ -33,19 +41,33 @@ const SignIn = ({setUserInformation}) => {
       auth().onAuthStateChanged(async user => {
         if (user) {
           const {uid, displayName, photoURL, email} = user;
+          const userDoc = await firestore().collection('users').doc(uid).get();
 
-          await firestore().collection('users').doc(uid).set({
-            uid,
-            displayName,
-            photoURL,
-            email,
-          });
+          if (!userDoc.exists) {
+            await firestore().collection('users').doc(uid).set({
+              uid,
+              displayName,
+              photoURL,
+              email,
+            });
+          }
 
-          setUserInformation(user);
-          navigation.navigate('Chat');
-          setIsLoading(false);
+          const deviceToken = await messaging().getToken();
+
+          if (deviceToken) {
+            await firestore().collection('users').doc(uid).update({
+              deviceToken: deviceToken,
+            });
+          }
+
+          const userData = userDoc.exists
+            ? userDoc.data()
+            : {uid, displayName, photoURL, email};
+          setUserInformation(userData);
+          navigation.navigate('Home');
         }
       });
+      setIsLoading(false);
     } catch (error) {
       console.error(error);
       setError(error);
@@ -73,7 +95,9 @@ const SignIn = ({setUserInformation}) => {
             source={require('../assets/google-icon.png')}
             style={styles.icon}
           />
-          <Text style={{color: 'black', fontSize: 20,}}>Continue with Google</Text>
+          <Text style={{color: 'black', fontSize: 20}}>
+            Continue with Google
+          </Text>
         </TouchableOpacity>
       )}
 

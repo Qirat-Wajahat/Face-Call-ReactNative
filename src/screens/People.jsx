@@ -9,7 +9,6 @@ import {
   TextInput,
 } from 'react-native';
 import React, {useEffect, useState} from 'react';
-
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import {useNavigation} from '@react-navigation/native';
@@ -17,7 +16,7 @@ import {useNavigation} from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
-const Chat = () => {
+const People = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState();
   const [users, setUsers] = useState([]);
@@ -29,21 +28,8 @@ const Chat = () => {
   useEffect(() => {
     const getCurrentUser = async () => {
       try {
-        const user = await GoogleSignin.getCurrentUser();
-        const currentUserEmail = user?.user.email;
-
-        if (currentUserEmail) {
-          const userRef = firestore()
-            .collection('users')
-            .where('email', '==', currentUserEmail);
-          const unsubscribe = userRef.onSnapshot(querySnapshot => {
-            querySnapshot.forEach(doc => {
-              setCurrentUser({id: doc.id, ...doc.data()});
-            });
-          });
-
-          return () => unsubscribe();
-        }
+        const currentUser = await GoogleSignin.getCurrentUser();
+        setCurrentUser(currentUser);
       } catch (error) {
         console.error('Error getting current user:', error);
       }
@@ -56,14 +42,13 @@ const Chat = () => {
     const fetchUsers = async () => {
       try {
         setIsLoading(true);
-
         const usersSnapshot = await firestore().collection('users').get();
         const usersData = usersSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         }));
         const filteredUsers = usersData.filter(
-          user => user.email !== currentUser?.email,
+          user => user.email !== currentUser?.user?.email,
         );
 
         setUsers(filteredUsers);
@@ -100,45 +85,21 @@ const Chat = () => {
           value={searchQuery}
         />
       </View>
-      <>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.navigate('EditProfile');
-          }}>
-          <Image
-            source={
-              currentUser?.photoURL
-                ? {uri: currentUser?.photoURL}
-                : require('../assets/defaultUser.jpg')
-            }
-            style={styles.profileImage}
-          />
-        </TouchableOpacity>
-
-        <View style={styles.noteContainer}>
-          <Text style={styles.noteText}>
-            {currentUser?.displayName ? currentUser?.displayName : 'Your note'}
-          </Text>
-        </View>
-      </>
       {isLoading ? (
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <FlatList
-          data={searchQuery ? filteredUsers : []}
+          data={searchQuery ? filteredUsers : users}
           keyExtractor={item => item.id}
           renderItem={({item}) => (
             <TouchableOpacity
               onPress={() => {
-                navigation.navigate('Chat', {
-                  screen: 'ChatZone',
-                  params: {
-                    coverPhoto: item.coverPhoto,
-                    profilePicture: item.photoURL,
-                    username: item.displayName,
-                    bio: item.bio,
-                    uid: item.uid,
-                  },
+                navigation.navigate('ChatZone', {
+                  coverPhoto: item.coverPhoto,
+                  profilePicture: item.photoURL,
+                  username: item.displayName,
+                  bio: item.bio,
+                  uid: item.uid,
                 });
               }}>
               <View style={styles.chatContainer}>
@@ -166,7 +127,7 @@ const Chat = () => {
   );
 };
 
-export default Chat;
+export default People;
 
 const styles = StyleSheet.create({
   container: {
@@ -179,7 +140,6 @@ const styles = StyleSheet.create({
     padding: 5,
     flexDirection: 'row',
     marginTop: 10,
-    marginLeft: 5,
     marginRight: 5,
     borderRadius: 20,
   },
@@ -215,19 +175,6 @@ const styles = StyleSheet.create({
   searchIcon: {
     marginRight: 5,
     color: '#696969',
-  },
-
-  profileImage: {
-    width: 70,
-    height: 70,
-    borderWidth: 1,
-    borderColor: '#008efe',
-    borderRadius: 50,
-    marginTop: 20,
-  },
-  noteText: {
-    color: '#989898',
-    fontSize: 15,
   },
   chatHeader: {
     flexDirection: 'row',
