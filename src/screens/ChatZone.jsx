@@ -24,6 +24,8 @@ import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
+import axios from 'axios';
+
 const ChatZone = ({route}) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -196,19 +198,31 @@ const ChatZone = ({route}) => {
       const recipientData = recipientSnapshot.data();
 
       if (recipientData?.deviceToken) {
-        const notification = {
+        const notificationData = {
           notification: {
             title: 'New Message!',
             body: `${currentUser.displayName} sent you a message.`,
           },
           data: {
             profilePicture: currentUser.photoURL || '',
-            username: currentUser.displayName || '',
+            username: currentUser.displayName || 's',
             message: message.text || '',
             timeSent: new Date().toISOString(),
           },
+          token: recipientData.deviceToken,
         };
-          console.log('device token: ', recipientData.deviceToken , 'data: ', notification);
+
+        console.log(notificationData);
+        axios
+          .post('https://red-kind-brown-bear.cyclic.app/send-notification', {
+            notificationData,
+          })
+          .then(response => {
+            console.log('Notification sent successfully:', response.data);
+          })
+          .catch(error => {
+            console.error('Error sending notification:', error);
+          });
       }
     } catch (error) {
       console.error('Error sending message:', error);
