@@ -20,6 +20,7 @@ const People = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState();
   const [users, setUsers] = useState([]);
+  const [friends, setFriends] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredUsers, setFilteredUsers] = useState([]);
 
@@ -28,8 +29,22 @@ const People = () => {
   useEffect(() => {
     const getCurrentUser = async () => {
       try {
-        const currentUser = await GoogleSignin.getCurrentUser();
-        setCurrentUser(currentUser);
+        const user = await GoogleSignin.getCurrentUser();
+        const currentUserEmail = user?.user.email;
+
+        if (currentUserEmail) {
+          const userRef = firestore()
+            .collection('users')
+            .where('email', '==', currentUserEmail);
+          const unsubscribe = userRef.onSnapshot(querySnapshot => {
+            querySnapshot.forEach(doc => {
+              const userData = {id: doc.id, ...doc.data()};
+              setCurrentUser(userData);
+            });
+          });
+
+          return () => unsubscribe();
+        }
       } catch (error) {
         console.error('Error getting current user:', error);
       }
@@ -48,10 +63,15 @@ const People = () => {
           ...doc.data(),
         }));
         const filteredUsers = usersData.filter(
-          user => user.email !== currentUser?.user?.email,
+          user => user.email !== currentUser?.email,
         );
 
+        const filterFriends = usersData.filter(user => {
+          return user.friends && user.friends.some(friend => friend.uid === currentUser.uid);
+        });
+
         setUsers(filteredUsers);
+        setFriends(filterFriends)
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -89,18 +109,34 @@ const People = () => {
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <FlatList
-          data={searchQuery ? filteredUsers : users}
-          keyExtractor={item => item.id}
+          data={searchQuery ? filteredUsers : friends}
+          keyExtractor={item => item.uid}
           renderItem={({item}) => (
             <TouchableOpacity
               onPress={() => {
-                navigation.navigate('ChatZone', {
-                  coverPhoto: item.coverPhoto,
-                  profilePicture: item.photoURL,
-                  username: item.displayName,
-                  bio: item.bio,
-                  uid: item.uid,
-                });
+                const isFriend = currentUser.friends.some(
+                  friend => friend.uid === item.uid,
+                );
+
+                if (isFriend) {
+                  navigation.navigate('ChatZone', {
+                    coverPhoto: item.coverPhoto,
+                    profilePicture: item.photoURL,
+                    username: item.displayName,
+                    bio: item.bio,
+                    uid: item.uid,
+                    currentUser: currentUser,
+                  });
+                } else {
+                  navigation.navigate('UserProfile', {
+                    coverPhoto: item.coverPhoto,
+                    profilePicture: item.photoURL,
+                    username: item.displayName,
+                    bio: item.bio,
+                    uid: item.uid,
+                    currentUser: currentUser,
+                  });
+                }
               }}>
               <View style={styles.chatContainer}>
                 <Image
@@ -135,7 +171,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     padding: 15,
   },
-
   chatContainer: {
     padding: 5,
     flexDirection: 'row',
@@ -143,7 +178,6 @@ const styles = StyleSheet.create({
     marginRight: 5,
     borderRadius: 20,
   },
-
   image: {
     width: 50,
     height: 50,
@@ -152,13 +186,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   chatContent: {
     flex: 1,
     marginLeft: 16,
     justifyContent: 'center',
   },
-
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -180,24 +212,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-
   chatInfo: {
     flex: 1,
     justifyContent: 'center',
   },
-
   chatName: {
     color: '#303030',
     fontSize: 16,
     marginRight: 8,
   },
-
   lastMessage: {
     fontSize: 12,
     marginTop: 10,
     color: '#555555',
   },
-
   unreadContainer: {
     height: 20,
     width: 20,
@@ -208,13 +236,11 @@ const styles = StyleSheet.create({
     marginStart: 30,
     marginTop: 12,
   },
-
   totalUnread: {
     fontSize: 10,
     color: '#fff',
     fontWeight: '600',
   },
-
   chatTime: {
     fontSize: 12,
     marginTop: 3,

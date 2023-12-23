@@ -41,15 +41,24 @@ const SignIn = ({setUserInformation}) => {
       auth().onAuthStateChanged(async user => {
         if (user) {
           const {uid, displayName, photoURL, email} = user;
-          const userDoc = await firestore().collection('users').doc(uid).get();
+          const userDocRef = firestore().collection('users').doc(uid);
+          const userDoc = await userDocRef.get();
 
           if (!userDoc.exists) {
-            await firestore().collection('users').doc(uid).set({
+            await userDocRef.set({
               uid,
               displayName,
               photoURL,
               email,
+              friends: [], 
             });
+          } else {
+            const userData = userDoc.data();
+            if (!userData.friends) {
+              await userDocRef.update({
+                friends: [], 
+              });
+            }
           }
 
           const deviceToken = await messaging().getToken();

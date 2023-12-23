@@ -6,7 +6,7 @@ import {
   Text,
   TouchableOpacity,
   View,
-  PermissionsAndroid
+  PermissionsAndroid,
 } from 'react-native';
 
 import SignIn from './src/screens/SignIn';
@@ -20,7 +20,7 @@ import EditProfile from './src/screens/EditProfile';
 
 import Header from './src/assets/Header';
 
-import {NavigationContainer} from '@react-navigation/native';
+import {NavigationContainer, useNavigation} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
@@ -29,6 +29,8 @@ import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import firestore from '@react-native-firebase/firestore';
+import messaging from '@react-native-firebase/messaging';
+import ShortVideos from './src/screens/ShotVideos';
 
 const App = () => {
   const [userInformation, setUserInformation] = useState(null);
@@ -42,7 +44,6 @@ const App = () => {
       webClientId:
         '209793389856-n1jcp2od4mu38lui1ou1t50400cq7f29.apps.googleusercontent.com',
     });
-    PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
   }, []);
 
   useEffect(() => {
@@ -70,15 +71,66 @@ const App = () => {
       }
     };
 
+    const getPermissions = async () => {
+      await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+      );
+
+      await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      );
+
+      await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+      );
+
+      await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+      );
+    };
+
+    getPermissions();
     checkAuthentication();
   }, []);
 
   function Home() {
+    const navigation = useNavigation();
+
+    useEffect(() => {
+      messaging().setBackgroundMessageHandler(async remoteMessage => {
+        console.log('Message handled in the Background Mode!');
+      });
+
+      messaging().onNotificationOpenedApp(remoteMessage => {
+        const {
+          username,
+          profilePicture,
+          uid,
+          coverPhoto,
+          bio,
+        } = remoteMessage.data;
+
+        const sanitizedProfilePicture = profilePicture || '';
+        const sanitizedCoverPhoto = coverPhoto || '';
+        const sanitizedBio = bio || '';
+
+        navigation.navigate('ChatZone', {
+          username,
+          profilePicture: sanitizedProfilePicture,
+          uid,
+          coverPhoto: sanitizedCoverPhoto,
+          bio: sanitizedBio,
+          currentUser: userInformation,
+        });
+      });
+    }, []);
+
     return (
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
+            backgroundColor: '#F5F5F5',
             paddingBottom: 5,
             borderTopWidth: 0,
             elevation: 0,
@@ -102,6 +154,21 @@ const App = () => {
             headerShown: false,
             tabBarIcon: ({color, size}) => (
               <Icon name="videocam" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Shorts"
+          component={ShortVideos}
+          options={{
+            headerShown: false,
+            tabBarItemStyle: {
+              bottom: 20,
+              backgroundColor: '#F5F5F5',
+              borderRadius: 25,
+            },
+            tabBarIcon: ({color, size}) => (
+              <Icon name="play" color={color} size={size + 5} />
             ),
           }}
         />
@@ -136,6 +203,7 @@ const App = () => {
       console.error('Error logging out:', error);
     }
   };
+
   return (
     <>
       <StatusBar backgroundColor="#008EFE" />
@@ -179,6 +247,8 @@ const App = () => {
                             profilePicture: route.params?.profilePicture,
                             username: route.params?.username,
                             userBio: route.params?.bio,
+                            uid: route.params?.uid,
+                            currentUser: route.params?.currentUser,
                           });
                         }}>
                         <Image
@@ -188,9 +258,13 @@ const App = () => {
                             borderRadius: 25,
                             marginRight: 10,
                           }}
-                          source={route.params?.profilePicture ? {
-                            uri: route.params?.profilePicture,
-                          } : require('./src/assets/defaultUser.jpg')}
+                          source={
+                            route.params?.profilePicture
+                              ? {
+                                  uri: route.params?.profilePicture,
+                                }
+                              : require('./src/assets/defaultUser.jpg')
+                          }
                         />
                         <Text
                           style={{

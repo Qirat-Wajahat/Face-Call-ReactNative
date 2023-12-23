@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   TextInput,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
@@ -23,8 +23,10 @@ const Chat = () => {
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredUsers, setFilteredUsers] = useState([]);
+  const [recentChats, setRecentChats] = useState([]);
 
   const navigation = useNavigation();
+  const listeners = useRef([]);
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -38,7 +40,9 @@ const Chat = () => {
             .where('email', '==', currentUserEmail);
           const unsubscribe = userRef.onSnapshot(querySnapshot => {
             querySnapshot.forEach(doc => {
-              setCurrentUser({id: doc.id, ...doc.data()});
+              const currenntUserData = {id: doc.id, ...doc.data()};
+
+              setCurrentUser(currenntUserData);
             });
           });
 
@@ -56,34 +60,107 @@ const Chat = () => {
     const fetchUsers = async () => {
       try {
         setIsLoading(true);
-
         const usersSnapshot = await firestore().collection('users').get();
         const usersData = usersSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         }));
-        const filteredUsers = usersData.filter(
-          user => user.email !== currentUser?.email,
-        );
-
+  
+        const filteredUsers = usersData.filter(user => {
+          return user.friends && user.friends.some(friend => friend.uid === currentUser.uid);
+        });
+  
         setUsers(filteredUsers);
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching users:', error);
+        setIsLoading(false);
       }
     };
-
+  
     if (currentUser) {
       fetchUsers();
     }
+  }, [currentUser]);  
+
+  useEffect(() => {
+    const chatRoomListener = async () => {
+      try {
+        setIsLoading(true);
+
+        if (currentUser) {
+          const userFriends = currentUser.friends;
+
+          const chatRoomPromises = userFriends.map(friend => {
+            const chatRoomId = [currentUser.uid, friend.uid].sort().join('-');
+
+            const unsubscribeSnapshot = firestore()
+              .collection('chatrooms')
+              .doc(chatRoomId)
+              .collection('messages')
+              .orderBy('createdAt', 'desc')
+              .limit(1)
+              .onSnapshot(snapshot => {
+                if (!snapshot.empty) {
+                  const latestMessageData = snapshot.docs[0].data();
+                  const latestMessage = latestMessageData.text;
+                  const sentAt = latestMessageData.createdAt;
+
+                  setRecentChats(prevChats => {
+                    const chatExists = prevChats.some(
+                      chat => chat.userId === friend.uid,
+                    );
+
+                    if (chatExists) {
+                      return prevChats.map(chat => {
+                        if (chat.userId === friend.uid) {
+                          return {
+                            ...chat,
+                            latestMessage,
+                            sentAt,
+                          };
+                        }
+                        return chat;
+                      });
+                    } else {
+                      return [
+                        ...prevChats,
+                        {
+                          userId: friend.uid,
+                          username: friend.displayName,
+                          latestMessage,
+                          sentAt,
+                        },
+                      ];
+                    }
+                  });
+                }
+              });
+
+            listeners.current.push(unsubscribeSnapshot);
+            return unsubscribeSnapshot;
+          });
+
+          await Promise.all(chatRoomPromises);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error fetching recent chats:', error);
+        setIsLoading(false);
+      }
+    };
+
+    chatRoomListener();
+
+    return () => {
+      listeners.current.forEach(unsubscribe => unsubscribe());
+    };
   }, [currentUser]);
 
   const handleSearch = query => {
     setSearchQuery(query);
-    const filtered = users.filter(
-      user =>
-        user.displayName.toLowerCase().includes(query.toLowerCase()) ||
-        user.email.toLowerCase().includes(query.toLowerCase()),
+    const filtered = users.filter(user =>
+      user.displayName.toLowerCase().includes(query.toLowerCase()),
     );
     setFilteredUsers(filtered);
   };
@@ -113,53 +190,64 @@ const Chat = () => {
             }
             style={styles.profileImage}
           />
-        </TouchableOpacity>
 
-        <View style={styles.noteContainer}>
           <Text style={styles.noteText}>
             {currentUser?.displayName ? currentUser?.displayName : 'Your note'}
           </Text>
-        </View>
+        </TouchableOpacity>
       </>
       {isLoading ? (
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <FlatList
-          data={searchQuery ? filteredUsers : []}
-          keyExtractor={item => item.id}
-          renderItem={({item}) => (
-            <TouchableOpacity
-              onPress={() => {
-                navigation.navigate('Chat', {
-                  screen: 'ChatZone',
-                  params: {
-                    coverPhoto: item.coverPhoto,
-                    profilePicture: item.photoURL,
+          data={searchQuery ? filteredUsers : users}
+          keyExtractor={item => item.uid}
+          renderItem={({item}) => {
+            const chat = recentChats.find(chat => chat.userId === item.uid);
+
+            const latestMessage = chat?.latestMessage;
+
+            const sentAt = chat?.sentAt;
+            const date = sentAt?.toDate();
+            const formattedDate = date?.toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+
+            return (
+              <TouchableOpacity
+                onPress={() => {
+                  navigation.navigate('ChatZone', {
                     username: item.displayName,
-                    bio: item.bio,
+                    profilePicture: item.photoURL,
                     uid: item.uid,
-                  },
-                });
-              }}>
-              <View style={styles.chatContainer}>
-                <Image
-                  source={
-                    item.photoURL
-                      ? {uri: item.photoURL}
-                      : require('../assets/defaultUser.jpg')
-                  }
-                  style={styles.image}
-                />
-                <View style={styles.chatContent}>
-                  <View style={styles.chatHeader}>
-                    <View style={styles.chatInfo}>
-                      <Text style={styles.chatName}>{item.displayName}</Text>
+                    coverPhoto: item.coverPhoto,
+                    bio: item.bio,
+                    currentUser: currentUser,
+                  });
+                }}>
+                <View style={styles.chatContainer}>
+                  <Image
+                    source={
+                      item.photoURL
+                        ? {uri: item.photoURL}
+                        : require('../assets/defaultUser.jpg')
+                    }
+                    style={styles.image}
+                  />
+                  <View style={styles.chatContent}>
+                    <View style={styles.chatHeader}>
+                      <View style={styles.chatInfo}>
+                        <Text style={styles.chatName}>{item.displayName}</Text>
+                        <Text style={styles.lastMessage}>{latestMessage}</Text>
+                      </View>
+                      <Text style={styles.chatTime}>{formattedDate}</Text>
                     </View>
                   </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          )}
+              </TouchableOpacity>
+            );
+          }}
         />
       )}
     </View>
@@ -174,7 +262,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     padding: 15,
   },
-
   chatContainer: {
     padding: 5,
     flexDirection: 'row',
@@ -183,7 +270,6 @@ const styles = StyleSheet.create({
     marginRight: 5,
     borderRadius: 20,
   },
-
   image: {
     width: 50,
     height: 50,
@@ -192,13 +278,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   chatContent: {
     flex: 1,
     marginLeft: 16,
     justifyContent: 'center',
   },
-
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -216,7 +300,6 @@ const styles = StyleSheet.create({
     marginRight: 5,
     color: '#696969',
   },
-
   profileImage: {
     width: 70,
     height: 70,
@@ -233,24 +316,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-
   chatInfo: {
     flex: 1,
     justifyContent: 'center',
   },
-
   chatName: {
     color: '#303030',
     fontSize: 16,
     marginRight: 8,
   },
-
   lastMessage: {
+    color: '#989898',
     fontSize: 12,
-    marginTop: 10,
-    color: '#555555',
+    fontWeight: '600',
+    marginTop: 5,
   },
-
   unreadContainer: {
     height: 20,
     width: 20,
@@ -261,16 +341,15 @@ const styles = StyleSheet.create({
     marginStart: 30,
     marginTop: 12,
   },
-
   totalUnread: {
     fontSize: 10,
     color: '#fff',
     fontWeight: '600',
   },
-
   chatTime: {
     fontSize: 12,
-    marginTop: 3,
+    textAlign: 'right',
+    alignSelf: 'center',
     color: 'gray',
   },
 });

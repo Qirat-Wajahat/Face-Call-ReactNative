@@ -12,6 +12,8 @@ import {
 import React, {useState, useEffect} from 'react';
 import Clipboard from '@react-native-clipboard/clipboard';
 
+import Sound from 'react-native-sound';
+
 import defaultUser from '../assets/defaultUser.jpg';
 
 import {Bubble, GiftedChat, Send} from 'react-native-gifted-chat';
@@ -22,9 +24,10 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import messaging from '@react-native-firebase/messaging';
 
 import axios from 'axios';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 const ChatZone = ({route}) => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -33,11 +36,11 @@ const ChatZone = ({route}) => {
   const [messages, setMessages] = useState([]);
   const [chatUserPhoto, setChatUserPhoto] = useState(null);
 
-  const {uid, profilePicture} = route.params;
-
+  const {profilePicture, uid} = route.params;
+  
   useEffect(() => {
     setMessages([]);
-
+    
     const getCurrentUserDetails = async () => {
       try {
         const currentUser = await GoogleSignin.getCurrentUser();
@@ -82,6 +85,7 @@ const ChatZone = ({route}) => {
         .onSnapshot(snapshot => {
           const fetchedMessages = snapshot.docs.map(doc => {
             const firebaseData = doc.data();
+
             return {
               _id: doc.id,
               text: firebaseData.text,
@@ -96,8 +100,8 @@ const ChatZone = ({route}) => {
                     ? 'You'
                     : 'Other User',
                 avatar:
-                  firebaseData.sentBy === currentUser?.uid
-                    ? currentUser?.photoURL
+                  firebaseData.sentBy === currentUser.uid
+                    ? currentUser.photoURL
                     : chatUserPhoto || '',
               },
             };
@@ -112,6 +116,14 @@ const ChatZone = ({route}) => {
       };
     }
   }, [currentUser, uid, chatUserPhoto]);
+
+  useEffect(() => {
+    const unsubscribe = messaging().onMessage(() => {
+      playMessageReceivedSound();
+    });
+
+    return unsubscribe;
+  }, []);
 
   const takePhotoFromCamera = async () => {
     setModalVisible(false);
@@ -162,6 +174,42 @@ const ChatZone = ({route}) => {
     }
   };
 
+  const playMessageSentSound = () => {
+    const sentSound = new Sound('messagesent.mp3', Sound.MAIN_BUNDLE, error => {
+      if (error) {
+        console.log('Failed to load the sent sound', error);
+        return;
+      }
+      sentSound.play(success => {
+        if (success) {
+          console.log('Message sent sound played successfully');
+        } else {
+          console.log('Failed to play the message sent sound');
+        }
+      });
+    });
+  };
+
+  const playMessageReceivedSound = () => {
+    const receivedSound = new Sound(
+      'messagereceived.wav',
+      Sound.MAIN_BUNDLE,
+      error => {
+        if (error) {
+          console.log('Failed to load the received sound', error);
+          return;
+        }
+        receivedSound.play(success => {
+          if (success) {
+            console.log('Message received sound played successfully');
+          } else {
+            console.log('Failed to play the message received sound');
+          }
+        });
+      },
+    );
+  };
+
   const onSend = async newMessages => {
     const message = newMessages[0];
     try {
@@ -184,13 +232,18 @@ const ChatZone = ({route}) => {
         messageData.image = downloadURL;
       }
 
+      if (messageData.sentBy == currentUser.uid) {
+        playMessageSentSound();
+      }
+
       await firestore()
         .collection('chatrooms')
         .doc(docId)
         .collection('messages')
         .add(messageData);
 
-      const recipientUid = currentUser.uid === uid ? senderUid : uid;
+      const recipientUid = currentUser.uid === uid ? currentUser.uid : uid;
+
       const recipientSnapshot = await firestore()
         .collection('users')
         .doc(recipientUid)
@@ -200,21 +253,23 @@ const ChatZone = ({route}) => {
       if (recipientData?.deviceToken) {
         const notificationData = {
           notification: {
-            title: 'New Message!',
-            body: `${currentUser.displayName} sent you a message.`,
+            title: currentUser.displayName,
+            body: messageData.text,
+            imageUrl: messageData.image,
           },
           data: {
-            profilePicture: currentUser.photoURL || '',
-            username: currentUser.displayName || 's',
-            message: message.text || '',
-            timeSent: new Date().toISOString(),
+            username: currentUser.displayName,
+            profilePicture: currentUser.photoURL,
+            uid: currentUser.uid,
+            coverPhoto: currentUser.coverPhoto,
+            bio: currentUser.bio,
+            currentUserData: JSON.stringify(currentUser),
           },
           token: recipientData.deviceToken,
         };
 
-        console.log(notificationData);
         axios
-          .post('https://red-kind-brown-bear.cyclic.app/send-notification', {
+          .post('https://strange-newt-pinafore.cyclic.app/send-notification', {
             notificationData,
           })
           .then(response => {

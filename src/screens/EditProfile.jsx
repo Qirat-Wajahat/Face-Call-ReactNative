@@ -289,7 +289,7 @@ const EditProfile = () => {
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity
-              style={styles.updateButton}
+              style={styles.cancelButton}
               onPress={() => setEditDisplayNameModalVisible(false)}>
               <Text style={{fontSize: 16, color: 'black'}}>Cancel</Text>
             </TouchableOpacity>
@@ -357,12 +357,17 @@ const EditProfile = () => {
                 source={{uri: profilePicture}}
                 style={styles.profilePicture}
               />
-              <Icon
-                name="camera"
-                size={25}
-                color="white"
-                style={styles.profilePictureIcon}
-              />
+              <TouchableOpacity
+                onPress={() => {
+                  setModalVisible(true);
+                }}>
+                <Icon
+                  name="camera"
+                  size={25}
+                  color="white"
+                  style={styles.profilePictureIcon}
+                />
+              </TouchableOpacity>
             </TouchableOpacity>
           </View>
         ) : (
