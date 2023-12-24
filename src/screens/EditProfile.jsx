@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   StyleSheet,
+  ToastAndroid,
 } from 'react-native';
 
 import defaultCoverImage from '../assets/defaultCoverImage.jpg';
@@ -19,6 +20,7 @@ import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import ImagePicker from 'react-native-image-crop-picker';
+import Clipboard from '@react-native-clipboard/clipboard';
 
 const EditProfile = () => {
   const [currentUser, setCurrentUser] = useState();
@@ -416,6 +418,23 @@ const EditProfile = () => {
             />
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity
+          style={styles.addBioContainer}
+          onPress={() => {
+            Clipboard.setString(currentUser?.uid);
+            ToastAndroid.show('Search Code Copied!', ToastAndroid.SHORT);
+          }}>
+          <Text style={{
+            color: '#202020'
+          }}>Search Code: </Text>
+          <Text style={styles.bioText}>{currentUser?.uid}</Text>
+          <Icon
+            name="content-copy"
+            size={16}
+            color="#008efe"
+          />
+        </TouchableOpacity>
       </View>
     </View>
   );

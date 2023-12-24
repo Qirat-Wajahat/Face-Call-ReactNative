@@ -85,13 +85,14 @@ const People = () => {
 
   const handleSearch = query => {
     setSearchQuery(query);
-    const filtered = users.filter(
-      user =>
-        user.displayName.toLowerCase().includes(query.toLowerCase()) ||
-        user.email.toLowerCase().includes(query.toLowerCase()),
-    );
-    setFilteredUsers(filtered);
+    if (query.trim() === '') {
+      setFilteredUsers([]);
+    } else {
+      const filtered = users.filter(user => user.uid === query);
+      setFilteredUsers(filtered);
+    }
   };
+  
 
   return (
     <View style={styles.container}>
