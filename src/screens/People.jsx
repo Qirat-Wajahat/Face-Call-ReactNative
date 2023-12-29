@@ -67,11 +67,14 @@ const People = () => {
         );
 
         const filterFriends = usersData.filter(user => {
-          return user.friends && user.friends.some(friend => friend.uid === currentUser.uid);
+          return (
+            user.friends &&
+            user.friends.some(friend => friend.uid === currentUser.uid)
+          );
         });
 
         setUsers(filteredUsers);
-        setFriends(filterFriends)
+        setFriends(filterFriends);
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -92,7 +95,6 @@ const People = () => {
       setFilteredUsers(filtered);
     }
   };
-  
 
   return (
     <View style={styles.container}>
@@ -126,6 +128,10 @@ const People = () => {
                     username: item.displayName,
                     bio: item.bio,
                     uid: item.uid,
+                    youtube: item.youtube,
+                    twitter: item.twitter,
+                    facebook: item.facebook,
+                    instagram: item.instagram,
                     currentUser: currentUser,
                   });
                 } else {
@@ -135,6 +141,10 @@ const People = () => {
                     username: item.displayName,
                     bio: item.bio,
                     uid: item.uid,
+                    youtube: item.youtube,
+                    twitter: item.twitter,
+                    facebook: item.facebook,
+                    instagram: item.instagram,
                     currentUser: currentUser,
                   });
                 }

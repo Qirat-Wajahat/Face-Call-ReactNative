@@ -12,15 +12,18 @@ import React, {useEffect, useRef, useState} from 'react';
 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-import {useNavigation} from '@react-navigation/native';
+import {useIsFocused, useNavigation} from '@react-navigation/native';
 
 import firestore from '@react-native-firebase/firestore';
+import database from '@react-native-firebase/database';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
 const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState();
   const [users, setUsers] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [offlineUsers, setOfflineUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [recentChats, setRecentChats] = useState([]);
@@ -65,11 +68,14 @@ const Chat = () => {
           id: doc.id,
           ...doc.data(),
         }));
-  
+
         const filteredUsers = usersData.filter(user => {
-          return user.friends && user.friends.some(friend => friend.uid === currentUser.uid);
+          return (
+            user.friends &&
+            user.friends.some(friend => friend.uid === currentUser.uid)
+          );
         });
-  
+
         setUsers(filteredUsers);
         setIsLoading(false);
       } catch (error) {
@@ -77,11 +83,11 @@ const Chat = () => {
         setIsLoading(false);
       }
     };
-  
+
     if (currentUser) {
       fetchUsers();
     }
-  }, [currentUser]);  
+  }, [currentUser]);
 
   useEffect(() => {
     const chatRoomListener = async () => {
@@ -157,6 +163,36 @@ const Chat = () => {
     };
   }, [currentUser]);
 
+  useEffect(() => {
+    const onlineRef = database().ref(`/presence/online`);
+    const offlineRef = database().ref(`/presence/offline`);
+
+    const onlineListener = onlineRef.on('value', snapshot => {
+      if (snapshot.exists()) {
+        const data = [];
+        data.push(snapshot.val());
+        setOnlineUsers(data);
+      } else {
+        setOnlineUsers([]);
+      }
+    });
+
+    const offlineListener = offlineRef.on('value', snapshot => {
+      if (snapshot.exists()) {
+        const data = [];
+        data.push(snapshot.val());
+        setOfflineUsers(data);
+      } else {
+        setOfflineUsers([]);
+      }
+    });
+
+    return () => {
+      onlineRef.off('value', onlineListener);
+      offlineRef.off('value', offlineListener);
+    };
+  }, []);
+
   const handleSearch = query => {
     setSearchQuery(query);
     const filtered = users.filter(user =>
@@ -209,10 +245,58 @@ const Chat = () => {
 
             const sentAt = chat?.sentAt;
             const date = sentAt?.toDate();
-            const formattedDate = date?.toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
+            const formattedDate = date?.toLocaleDateString('en-US', {
+              year: '2-digit',
+              month: '2-digit',
+              day: '2-digit',
             });
+
+            const isUserOnline = onlineUsers.some(user =>
+              Object.keys(user).includes(item.uid),
+            );
+
+            const lastSeenData = offlineUsers.find(user => user[item.uid]);
+            const isUserOffline = lastSeenData && lastSeenData[item.uid];
+
+            let lastSeenTime = '';
+            let lastSeenMessage = '';
+
+            if (isUserOffline) {
+              const lastSeenAt = lastSeenData[item.uid].lastSeenAt;
+
+              const lastSeenDate = new Date(lastSeenAt);
+              lastSeenMessage = `Last seen at ${lastSeenDate.toLocaleString(
+                [],
+                {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                },
+              )}`;
+
+              const currentTimestamp = Date.now();
+              const offlineDuration = currentTimestamp - lastSeenAt;
+
+              const seconds = Math.floor(offlineDuration / 1000);
+              const minutes = Math.floor(seconds / 60);
+              const hours = Math.floor(minutes / 60);
+              const days = Math.floor(hours / 24);
+              const months = Math.floor(days / 30);
+              const years = Math.floor(days / 365);
+
+              if (years > 0) {
+                lastSeenTime = `${years} Y`;
+              } else if (months > 0) {
+                lastSeenTime = `${months} M`;
+              } else if (days > 0) {
+                lastSeenTime = `${days} D`;
+              } else if (hours > 0) {
+                lastSeenTime = `${hours} H`;
+              } else if (minutes > 0) {
+                lastSeenTime = `${minutes} Min`;
+              } else {
+                lastSeenTime = `${seconds} S`;
+              }
+            }
 
             return (
               <TouchableOpacity
@@ -223,23 +307,58 @@ const Chat = () => {
                     uid: item.uid,
                     coverPhoto: item.coverPhoto,
                     bio: item.bio,
+                    youtube: item.youtube,
+                    twitter: item.twitter,
+                    facebook: item.facebook,
+                    instagram: item.instagram,
+                    presenceData: isUserOnline ? 'Online' : lastSeenMessage,
                     currentUser: currentUser,
                   });
                 }}>
                 <View style={styles.chatContainer}>
-                  <Image
-                    source={
-                      item.photoURL
-                        ? {uri: item.photoURL}
-                        : require('../assets/defaultUser.jpg')
-                    }
-                    style={styles.image}
-                  />
+                  <View style={styles.profileContainer}>
+                    {isUserOnline ? (
+                      <View style={styles.onlineBorder}>
+                        <Image
+                          source={
+                            item.photoURL
+                              ? {uri: item.photoURL}
+                              : require('../assets/defaultUser.jpg')
+                          }
+                          style={styles.image}
+                        />
+                      </View>
+                    ) : (
+                      <>
+                        <View style={styles.lastSeenTime}>
+                          <Text style={styles.lastSeenText}>
+                            {lastSeenTime}
+                          </Text>
+                        </View>
+                        <View style={styles.offlineBorder}>
+                          <Image
+                            source={
+                              item.photoURL
+                                ? {uri: item.photoURL}
+                                : require('../assets/defaultUser.jpg')
+                            }
+                            style={styles.image}
+                          />
+                        </View>
+                      </>
+                    )}
+                  </View>
+
                   <View style={styles.chatContent}>
                     <View style={styles.chatHeader}>
                       <View style={styles.chatInfo}>
                         <Text style={styles.chatName}>{item.displayName}</Text>
-                        <Text style={styles.lastMessage}>{latestMessage}</Text>
+                        <Text
+                          ellipsizeMode="tail"
+                          numberOfLines={1}
+                          style={styles.lastMessage}>
+                          {latestMessage}
+                        </Text>
                       </View>
                       <Text style={styles.chatTime}>{formattedDate}</Text>
                     </View>
@@ -273,10 +392,36 @@ const styles = StyleSheet.create({
   image: {
     width: 50,
     height: 50,
-    backgroundColor: '#128C7E',
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  onlineBorder: {
+    borderWidth: 2,
+    borderRadius: 50,
+    borderColor: '#00CC33',
+    padding: 3,
+  },
+  offlineBorder: {
+    borderWidth: 2,
+    borderRadius: 50,
+    borderColor: '#F0F0F0',
+    padding: 3,
+  },
+  lastSeenTime: {
+    width: 30,
+    height: 20,
+    right: 0,
+    position: 'absolute',
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  lastSeenText: {
+    fontSize: 8,
+    color: '#555',
   },
   chatContent: {
     flex: 1,

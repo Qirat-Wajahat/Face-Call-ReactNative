@@ -75,6 +75,7 @@ const Header = ({handleLogout}) => {
 
     fetchUserDataAndRequests();
   }, []);
+  
   const openMenu = () => {
     setShowSideMenu(true);
 

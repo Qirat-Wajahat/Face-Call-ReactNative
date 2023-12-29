@@ -12,8 +12,9 @@ import {
 import SignIn from './src/screens/SignIn';
 import Chat from './src/screens/Chat';
 import Calls from './src/screens/Calls';
+import ShortVideos from './src/screens/ShotVideos';
 import People from './src/screens/People';
-import Stories from './src/screens/Stories';
+import VipDialer from './src/screens/VipDialer';
 import ChatZone from './src/screens/ChatZone';
 import UserProfile from './src/screens/UserProfile';
 import EditProfile from './src/screens/EditProfile';
@@ -30,10 +31,10 @@ import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import firestore from '@react-native-firebase/firestore';
 import messaging from '@react-native-firebase/messaging';
-import ShortVideos from './src/screens/ShotVideos';
+import database from '@react-native-firebase/database';
 
 const App = () => {
-  const [userInformation, setUserInformation] = useState(null);
+  const [userInformation, setUserInformation] = useState();
   const [isLoading, setIsLoading] = useState(true);
 
   const Stack = createNativeStackNavigator();
@@ -93,6 +94,49 @@ const App = () => {
     checkAuthentication();
   }, []);
 
+  useEffect(() => {
+    const getCurrentUserPresence = () => {
+      const userId = userInformation?.uid;
+
+      if (userId) {
+        const onlineRef = database().ref(`presence/online/${userId}`);
+        const offlineRef = database().ref(`presence/offline/${userId}`);
+
+        onlineRef.set(true).then(() => console.log('Online presence set'));
+
+        onlineRef
+          .onDisconnect()
+          .update({
+            lastSeenAt: database.ServerValue.TIMESTAMP,
+          })
+          .then(() => {
+            onlineRef.onDisconnect().remove();
+            offlineRef.set({lastSeenAt: database.ServerValue.TIMESTAMP});
+            console.log('On disconnect function configured.');
+          });
+      } else {
+        console.log('User information or UID is undefined');
+      }
+    };
+    getCurrentUserPresence();
+
+    return () => {
+      const userId = userInformation?.uid;
+      if (userId) {
+        const onlineRef = database().ref(`presence/online/${userId}`);
+        const offlineRef = database().ref(`presence/offline/${userId}`);
+
+        onlineRef.set(false).then(() => console.log('Offline presence set'));
+        onlineRef.update({
+          lastSeenAt: database.ServerValue.TIMESTAMP,
+        });
+        onlineRef.onDisconnect().cancel();
+        onlineRef.onDisconnect().remove();
+        offlineRef.set({lastSeenAt: database.ServerValue.TIMESTAMP});
+      }
+    };
+  }, [userInformation]);
+
   function Home() {
     const navigation = useNavigation();
 
@@ -102,13 +146,8 @@ const App = () => {
       });
 
       messaging().onNotificationOpenedApp(remoteMessage => {
-        const {
-          username,
-          profilePicture,
-          uid,
-          coverPhoto,
-          bio,
-        } = remoteMessage.data;
+        const {username, profilePicture, uid, coverPhoto, bio} =
+          remoteMessage.data;
 
         const sanitizedProfilePicture = profilePicture || '';
         const sanitizedCoverPhoto = coverPhoto || '';
@@ -182,12 +221,12 @@ const App = () => {
           {props => <People {...props} user={userInformation} />}
         </Tab.Screen>
         <Tab.Screen
-          name="Stories"
-          component={Stories}
+          name="Vip Caller"
+          component={VipDialer}
           options={{
             headerShown: false,
             tabBarIcon: ({color, size}) => (
-              <MaterialIcon name="web-stories" color={color} size={size} />
+              <MaterialIcon name="phone" color={color} size={size} />
             ),
           }}
         />
@@ -247,6 +286,10 @@ const App = () => {
                             profilePicture: route.params?.profilePicture,
                             username: route.params?.username,
                             userBio: route.params?.bio,
+                            youtube: route.params?.youtube,
+                            twitter: route.params?.twitter,
+                            facebook: route.params?.facebook,
+                            instagram: route.params?.instagram,
                             uid: route.params?.uid,
                             currentUser: route.params?.currentUser,
                           });
@@ -266,14 +309,23 @@ const App = () => {
                               : require('./src/assets/defaultUser.jpg')
                           }
                         />
-                        <Text
-                          style={{
-                            color: '#5f5f5f',
-                            fontSize: 18,
-                            fontWeight: 'bold',
-                          }}>
-                          {route.params?.username}
-                        </Text>
+                        <View>
+                          <Text
+                            style={{
+                              color: '#5f5f5f',
+                              fontSize: 18,
+                              fontWeight: 'bold',
+                            }}>
+                            {route.params?.username}
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: '#5f5f5f',
+                            }}>
+                            {route.params?.presenceData}
+                          </Text>
+                        </View>
                       </TouchableOpacity>
                     ),
                     headerRight: () => (

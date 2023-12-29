@@ -18,11 +18,22 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import firestore from '@react-native-firebase/firestore';
 import axios from 'axios';
+import InAppBrowser from 'react-native-inappbrowser-reborn';
 
 const UserProfile = ({route}) => {
-  const {username, profilePicture, userBio, coverPhoto, uid, currentUser} =
-    route.params;
-    
+  const {
+    username,
+    profilePicture,
+    userBio,
+    coverPhoto,
+    uid,
+    youtube,
+    twitter,
+    facebook,
+    instagram,
+    currentUser,
+  } = route.params;
+
   const navigation = useNavigation();
 
   const isRequestSent = () => {
@@ -80,7 +91,6 @@ const UserProfile = ({route}) => {
   }, [currentUser.uid, uid]);
 
   const handleUnfriend = async friendUid => {
-    
     const confirmUnfriend = async () => {
       return new Promise(resolve => {
         Alert.alert(
@@ -211,6 +221,23 @@ const UserProfile = ({route}) => {
     }
   };
 
+  const handleOpenInAppBrowser = async url => {
+    if (await InAppBrowser.isAvailable()) {
+      const result = await InAppBrowser.open(url, {
+        showTitle: true,
+        enableUrlBarHiding: true,
+        enableDefaultShare: true,
+        forceCloseOnRedirection: false,
+        hasBackButton: true,
+        includeReferrel: true,
+        animated: true,
+      });
+      console.log(result);
+    } else {
+      console.error('InAppBrowser is null');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Image
@@ -302,6 +329,84 @@ const UserProfile = ({route}) => {
           </View>
         )}
       </View>
+
+      <View style={{alignSelf: 'flex-start', marginStart: 10,}}>
+        {youtube ? (
+          <TouchableOpacity
+            onPress={() => {
+              handleOpenInAppBrowser(youtube.link);
+            }}
+            style={[
+              styles.socialIcon,
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 4,
+              },
+            ]}>
+            <MaterialCommunityIcons name="youtube" size={46} color="#f44234" />
+            <Text style={styles.socialLabel}>{youtube.label}</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {twitter ? (
+          <TouchableOpacity
+            onPress={() => {
+              handleOpenInAppBrowser(twitter.link);
+            }}
+            style={[
+              styles.socialIcon,
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 4,
+              },
+            ]}>
+            <MaterialCommunityIcons name="twitter" size={46} color="#00aeeb" />
+            <Text style={styles.socialLabel}>{twitter.label}</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {facebook ? (
+          <TouchableOpacity
+            onPress={() => {
+              handleOpenInAppBrowser(facebook.link);
+            }}
+            style={[
+              styles.socialIcon,
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 4,
+              },
+            ]}>
+            <MaterialCommunityIcons name="facebook" size={46} color="#2978b3" />
+            <Text style={styles.socialLabel}>{facebook.label}</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {instagram ? (
+          <TouchableOpacity
+            onPress={() => {
+              handleOpenInAppBrowser(instagram.link);
+            }}
+            style={[
+              styles.socialIcon,
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 4,
+              },
+            ]}>
+            <MaterialCommunityIcons
+              name="instagram"
+              size={46}
+              color="#cd436c"
+            />
+            <Text style={styles.socialLabel}>{instagram.label}</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 };
@@ -376,6 +481,12 @@ const styles = StyleSheet.create({
   requestSentIcon: {
     paddingLeft: 5,
     fontWeight: '500',
+  },
+  socialLabel: {
+    fontSize: 24,
+    color: '#030303',
+    borderBottomWidth: 2,
+    marginStart: 5,
   },
 });
 

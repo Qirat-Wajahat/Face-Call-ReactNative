@@ -27,7 +27,7 @@ import storage from '@react-native-firebase/storage';
 import messaging from '@react-native-firebase/messaging';
 
 import axios from 'axios';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
 const ChatZone = ({route}) => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -37,10 +37,10 @@ const ChatZone = ({route}) => {
   const [chatUserPhoto, setChatUserPhoto] = useState(null);
 
   const {profilePicture, uid} = route.params;
-  
+
   useEffect(() => {
     setMessages([]);
-    
+
     const getCurrentUserDetails = async () => {
       try {
         const currentUser = await GoogleSignin.getCurrentUser();
@@ -261,8 +261,12 @@ const ChatZone = ({route}) => {
             username: currentUser.displayName,
             profilePicture: currentUser.photoURL,
             uid: currentUser.uid,
-            coverPhoto: currentUser.coverPhoto,
-            bio: currentUser.bio,
+            coverPhoto: currentUser.coverPhoto || null,
+            bio: currentUser.bio || null,
+            youtube: currentUser.youtube || null,
+            twitter: currentUser.twitter || null,
+            facebook: currentUser.facebook || null,
+            instagram: currentUser.instagram || null,
             currentUserData: JSON.stringify(currentUser),
           },
           token: recipientData.deviceToken,
