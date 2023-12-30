@@ -126,12 +126,7 @@ const App = () => {
         const onlineRef = database().ref(`presence/online/${userId}`);
         const offlineRef = database().ref(`presence/offline/${userId}`);
 
-        onlineRef.set(false).then(() => console.log('Offline presence set'));
-        onlineRef.update({
-          lastSeenAt: database.ServerValue.TIMESTAMP,
-        });
-        onlineRef.onDisconnect().cancel();
-        onlineRef.onDisconnect().remove();
+        onlineRef.remove().then(() => console.log('Offline presence set'));
         offlineRef.set({lastSeenAt: database.ServerValue.TIMESTAMP});
       }
     };
@@ -146,12 +141,26 @@ const App = () => {
       });
 
       messaging().onNotificationOpenedApp(remoteMessage => {
-        const {username, profilePicture, uid, coverPhoto, bio} =
-          remoteMessage.data;
+        const {
+          username,
+          profilePicture,
+          uid,
+          coverPhoto,
+          bio,
+          youtube,
+          twitter,
+          facebook,
+          instagram,
+        } = remoteMessage.data;
 
         const sanitizedProfilePicture = profilePicture || '';
         const sanitizedCoverPhoto = coverPhoto || '';
         const sanitizedBio = bio || '';
+
+        const sanitizedYoutube = parseSafely(youtube);
+        const sanitizedTwitter = parseSafely(twitter);
+        const sanitizedFacebook = parseSafely(facebook);
+        const sanitizedInstagram = parseSafely(instagram);
 
         navigation.navigate('ChatZone', {
           username,
@@ -159,9 +168,22 @@ const App = () => {
           uid,
           coverPhoto: sanitizedCoverPhoto,
           bio: sanitizedBio,
+          youtube: sanitizedYoutube,
+          twitter: sanitizedTwitter,
+          facebook: sanitizedFacebook,
+          instagram: sanitizedInstagram,
           currentUser: userInformation,
         });
       });
+
+      const parseSafely = data => {
+        try {
+          return data ? JSON.parse(data) : '';
+        } catch (error) {
+          console.error('Error parsing JSON:', error);
+          return '';
+        }
+      };
     }, []);
 
     return (

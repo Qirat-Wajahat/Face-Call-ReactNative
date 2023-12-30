@@ -328,84 +328,72 @@ const UserProfile = ({route}) => {
             />
           </View>
         )}
-      </View>
+        <View
+          style={{
+            alignSelf: 'flex-start',
+            marginStart: 20,
+            top: 5,
+          }}>
+          {youtube ? (
+            <TouchableOpacity
+              onPress={() => {
+                handleOpenInAppBrowser(youtube.link);
+              }}
+              style={styles.socialIcon}>
+              <MaterialCommunityIcons
+                name="youtube"
+                size={56}
+                color="#f44234"
+              />
+              <Text style={styles.socialLabel}>{youtube.label}</Text>
+            </TouchableOpacity>
+          ) : null}
 
-      <View style={{alignSelf: 'flex-start', marginStart: 10,}}>
-        {youtube ? (
-          <TouchableOpacity
-            onPress={() => {
-              handleOpenInAppBrowser(youtube.link);
-            }}
-            style={[
-              styles.socialIcon,
-              {
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 4,
-              },
-            ]}>
-            <MaterialCommunityIcons name="youtube" size={46} color="#f44234" />
-            <Text style={styles.socialLabel}>{youtube.label}</Text>
-          </TouchableOpacity>
-        ) : null}
+          {twitter ? (
+            <TouchableOpacity
+              onPress={() => {
+                handleOpenInAppBrowser(twitter.link);
+              }}
+              style={styles.socialIcon}>
+              <MaterialCommunityIcons
+                name="twitter"
+                size={56}
+                color="#00aeeb"
+              />
+              <Text style={styles.socialLabel}>{twitter.label}</Text>
+            </TouchableOpacity>
+          ) : null}
 
-        {twitter ? (
-          <TouchableOpacity
-            onPress={() => {
-              handleOpenInAppBrowser(twitter.link);
-            }}
-            style={[
-              styles.socialIcon,
-              {
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 4,
-              },
-            ]}>
-            <MaterialCommunityIcons name="twitter" size={46} color="#00aeeb" />
-            <Text style={styles.socialLabel}>{twitter.label}</Text>
-          </TouchableOpacity>
-        ) : null}
+          {facebook ? (
+            <TouchableOpacity
+              onPress={() => {
+                handleOpenInAppBrowser(facebook.link);
+              }}
+              style={styles.socialIcon}>
+              <MaterialCommunityIcons
+                name="facebook"
+                size={56}
+                color="#2978b3"
+              />
+              <Text style={styles.socialLabel}>{facebook.label}</Text>
+            </TouchableOpacity>
+          ) : null}
 
-        {facebook ? (
-          <TouchableOpacity
-            onPress={() => {
-              handleOpenInAppBrowser(facebook.link);
-            }}
-            style={[
-              styles.socialIcon,
-              {
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 4,
-              },
-            ]}>
-            <MaterialCommunityIcons name="facebook" size={46} color="#2978b3" />
-            <Text style={styles.socialLabel}>{facebook.label}</Text>
-          </TouchableOpacity>
-        ) : null}
-
-        {instagram ? (
-          <TouchableOpacity
-            onPress={() => {
-              handleOpenInAppBrowser(instagram.link);
-            }}
-            style={[
-              styles.socialIcon,
-              {
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 4,
-              },
-            ]}>
-            <MaterialCommunityIcons
-              name="instagram"
-              size={46}
-              color="#cd436c"
-            />
-            <Text style={styles.socialLabel}>{instagram.label}</Text>
-          </TouchableOpacity>
-        ) : null}
+          {instagram ? (
+            <TouchableOpacity
+              onPress={() => {
+                handleOpenInAppBrowser(instagram.link);
+              }}
+              style={styles.socialIcon}>
+              <MaterialCommunityIcons
+                name="instagram"
+                size={56}
+                color="#cd436c"
+              />
+              <Text style={styles.socialLabel}>{instagram.label}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -440,14 +428,14 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   friendRequestButton: {
-    marginTop: 100,
+    marginTop: 30,
     backgroundColor: '#008EFE',
     paddingVertical: 5,
     paddingHorizontal: 15,
     borderRadius: 5,
   },
   removeFriendButton: {
-    marginTop: 100,
+    marginTop: 30,
     backgroundColor: '#F44336',
     paddingVertical: 5,
     paddingHorizontal: 15,
@@ -464,7 +452,7 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
   },
   friendRequestSentButton: {
-    marginTop: 100,
+    marginTop: 30,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -482,11 +470,16 @@ const styles = StyleSheet.create({
     paddingLeft: 5,
     fontWeight: '500',
   },
+  socialIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
   socialLabel: {
-    fontSize: 24,
-    color: '#030303',
+    fontSize: 28,
+    marginStart: 8,
     borderBottomWidth: 2,
-    marginStart: 5,
+    color: '#030303',
   },
 });
 

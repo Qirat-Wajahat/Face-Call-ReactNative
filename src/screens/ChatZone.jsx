@@ -261,12 +261,12 @@ const ChatZone = ({route}) => {
             username: currentUser.displayName,
             profilePicture: currentUser.photoURL,
             uid: currentUser.uid,
-            coverPhoto: currentUser.coverPhoto || null,
-            bio: currentUser.bio || null,
-            youtube: currentUser.youtube || null,
-            twitter: currentUser.twitter || null,
-            facebook: currentUser.facebook || null,
-            instagram: currentUser.instagram || null,
+            coverPhoto: currentUser.coverPhoto || '',
+            bio: currentUser.bio || '',
+            youtube: JSON.stringify(currentUser.youtube) || '',
+            twitter: JSON.stringify(currentUser.twitter) || '',
+            facebook: JSON.stringify(currentUser.facebook) || '',
+            instagram: JSON.stringify(currentUser.instagram) || '',
             currentUserData: JSON.stringify(currentUser),
           },
           token: recipientData.deviceToken,
@@ -471,6 +471,7 @@ const ChatZone = ({route}) => {
                       backgroundColor: 'lightgrey',
                       borderRadius: 15,
                       padding: 10,
+                      maxWidth: '80%',
                     }}>
                     {props.currentMessage.image && (
                       <Image
