@@ -12,7 +12,9 @@ import {
 import SignIn from './src/screens/SignIn';
 import Chat from './src/screens/Chat';
 import Calls from './src/screens/Calls';
-import ShortVideos from './src/screens/ShotVideos';
+import Status from './src/screens/Status/Status';
+import ViewStatus from './src/screens/Status/ViewStatus';
+import PostStatus from './src/screens/Status/PostStatus';
 import People from './src/screens/People';
 import VipDialer from './src/screens/VipDialer';
 import ChatZone from './src/screens/ChatZone';
@@ -219,8 +221,7 @@ const App = () => {
           }}
         />
         <Tab.Screen
-          name="Shorts"
-          component={ShortVideos}
+          name="Status"
           options={{
             headerShown: false,
             tabBarItemStyle: {
@@ -231,8 +232,9 @@ const App = () => {
             tabBarIcon: ({color, size}) => (
               <Icon name="play" color={color} size={size + 5} />
             ),
-          }}
-        />
+          }}>
+          {props => <Status {...props} user={userInformation} />}
+        </Tab.Screen>
         <Tab.Screen
           name="People"
           options={{
@@ -290,6 +292,18 @@ const App = () => {
                       <Header title="Home" handleLogout={handleLogout} />
                     ),
                   }}
+                />
+
+                <Stack.Screen
+                  name="ViewStatus"
+                  component={ViewStatus}
+                  options={{headerShown: false}}
+                />
+
+                <Stack.Screen
+                  name="PostStatus"
+                  component={PostStatus}
+                  options={{headerShown: false}}
                 />
 
                 <Stack.Screen

@@ -16,11 +16,12 @@ import Sound from 'react-native-sound';
 
 import defaultUser from '../assets/defaultUser.jpg';
 
-import {Bubble, GiftedChat, Send} from 'react-native-gifted-chat';
+import {Bubble, GiftedChat, InputToolbar, Send} from 'react-native-gifted-chat';
 import ImageCropPicker from 'react-native-image-crop-picker';
 
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
@@ -302,6 +303,40 @@ const ChatZone = ({route}) => {
     }
   };
 
+  const customInputToolbar = props => {
+    return (
+      <View style={styles.customInputContainer}>
+        <InputToolbar
+          {...props}
+          containerStyle={{
+            backgroundColor: '#ffffff',
+            width: '85%',
+            borderTopWidth: 0,
+            borderRadius: 25,
+            elevation: 5,
+            marginHorizontal: 5,
+            marginVertical: '2%',
+            flex: 1,
+          }}
+        />
+
+        {props.text !== '' || imageUri ? (
+          <TouchableOpacity
+            style={styles.sendBtn}
+            onPress={() => {
+              props.onSend({text: props.text});
+            }}>
+            <Icon name="send-sharp" size={24} color="white" style={{left: 2}} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.sendBtn}>
+            <Icon name="mic" size={24} color="white" />
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
   return (
     <View style={{flex: 1}}>
       <Modal
@@ -313,31 +348,26 @@ const ChatZone = ({route}) => {
         }}>
         <View style={styles.imageModal}>
           <View style={styles.imageModalContent}>
-            <Text style={styles.imageModalTitle}>Choose an Option</Text>
+            <TouchableOpacity
+              style={{
+                alignItems: 'flex-end',
+                margin: 10,
+                borderBottomWidth: 0.5
+              }}
+              onPress={() => setModalVisible(false)}>
+              <Icon name="close" size={30} color="black" />
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.modelActionBtn}
               onPress={takePhotoFromCamera}>
-              <Text style={{color: 'white', fontSize: 16}}>Take Photo</Text>
+              <Icon name="camera" size={24} color="white" />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.modelActionBtn}
               onPress={choosePhotoFromGallery}>
-              <Text style={{color: 'white', fontSize: 16}}>
-                Choose from Gallery
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#ccc',
-                paddingVertical: 15,
-                paddingHorizontal: 40,
-                borderRadius: 8,
-              }}
-              onPress={() => setModalVisible(false)}>
-              <Text style={{fontSize: 16, color: 'black'}}>Cancel</Text>
+              <Icon name="image" size={24} color="white" />
             </TouchableOpacity>
           </View>
         </View>
@@ -368,8 +398,9 @@ const ChatZone = ({route}) => {
             showUserAvatar
             scrollToBottom
             textInputStyle={{color: 'black'}}
+            renderInputToolbar={props => customInputToolbar(props)}
             onLongPress={(context, message) => {
-              const options = ['Delete Message', 'Copy Text', 'Cancel'];
+              const options = ['Delete for Everyone', 'Copy Text', 'Cancel'];
               const cancelButtonIndex = options.length - 1;
 
               context.actionSheet().showActionSheetWithOptions(
@@ -438,25 +469,28 @@ const ChatZone = ({route}) => {
                       </TouchableOpacity>
                     </View>
                   ) : null}
+
                   <TouchableOpacity
                     onPress={() => {
                       setModalVisible(true);
                     }}
                     style={{
-                      marginBottom: 9,
-                      marginRight: 5,
+                      marginBottom: 10,
+                      marginRight: 10,
                     }}>
-                    <Icon name="image" size={26} color="#008efe" />
+                    <FontAwesome name="paperclip" size={24} color="#008efe" />
                   </TouchableOpacity>
 
-                  <Send
-                    {...props}
-                    containerStyle={{
-                      marginHorizontal: 10,
+                  <TouchableOpacity
+                    onPress={() => {
+                      takePhotoFromCamera();
+                    }}
+                    style={{
                       marginBottom: 10,
+                      marginRight: 10,
                     }}>
-                    <Icon name="paper-plane" size={24} color="#008efe" />
-                  </Send>
+                    <Icon name="camera" size={26} color="#008efe" />
+                  </TouchableOpacity>
                 </>
               );
             }}
@@ -518,36 +552,39 @@ const ChatZone = ({route}) => {
 const styles = StyleSheet.create({
   imageModal: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    marginBottom: '15%',
+    marginRight: '15%',
   },
   imageModalContent: {
     backgroundColor: 'white',
     borderRadius: 20,
-    width: '80%',
-    padding: 20,
-    alignItems: 'center',
+    width: '30%',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
-  imageModalTitle: {
-    fontSize: 18,
-    marginBottom: 20,
-    color: '#797979',
-  },
   modelActionBtn: {
     backgroundColor: '#008efe',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 8,
-    marginBottom: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 40,
+    margin: 10,
+  },
+  customInputContainer: {
+    alignItems: 'flex-end',
+  },
+  sendBtn: {
+    backgroundColor: '#008efe',
+    bottom: 10,
+    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 8,
+    borderRadius: 25,
   },
 });
 
